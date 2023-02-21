@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+
 use serde::{
     de::{value, DeserializeOwned},
     Serialize,
@@ -69,14 +73,17 @@ impl OpenAIClient {
         let response = request_builder.send().await?.json::<Value>().await?;
 
         if response.get("error").is_some() {
-            let err_json = json!(response);
+            let err_json = json!(response.get("error").unwrap());
+            
+            panic!("{}", err_json.to_string());
 
+            let not_active = "billing_not_active".to_string();
             match err_json
                 .get("type")
                 .expect("No 'type' sent with error message")
                 .to_string()
             {
-                "billing_not_active" => return Err(OpenAIError::BillingNotActive),
+                //not_active => return Err(OpenAIError::BillingNotActive),
                 other => return Err(OpenAIError::UnrecognizedError(other)),
             }
         } else {
@@ -85,5 +92,7 @@ impl OpenAIClient {
         }
     }
 }
+
+
 
 pub struct OpenAIRequestBuilder {}

@@ -114,7 +114,7 @@ impl OpenAIResponse for CompletionResponse {}
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Choice {
-    text: String,
+    pub text: String,
     index: usize,
     log_probs: Option<i32>,
     finish_reason: Option<String>,

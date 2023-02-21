@@ -5,8 +5,8 @@ use openai::{
     completions::{self, CompletionRequest, CompletionResponse},
 };
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
+    /*
     let open_ai_client = client::OpenAIClient::new(
         std::env::var("OPENAI_API_KEY").expect("Could not get api token"),
     );
@@ -16,6 +16,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     open_ai_client
         .send_request::<CompletionRequest, CompletionResponse>(request)
         .await?;
-
+*/
     Ok(())
 }
