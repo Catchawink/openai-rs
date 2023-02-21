@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::client::{OpenAIRequest, OpenAIResponse};
@@ -6,25 +8,41 @@ use crate::client::{OpenAIRequest, OpenAIResponse};
 pub struct CompletionRequest {
     pub model: String,
     pub prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
-    pub max_tokens: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub top_p: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub n: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub lob_probs: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub echo: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stop: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub presence_penalty: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub best_of: Option<i32>,
-    pub logit_bias: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logit_bias: Option<HashMap<String, i32>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
 }
 
+const COMPLETION_ENDPOINT: &str = "https://api.openai.com/v1/completions";
+
 impl OpenAIRequest for CompletionRequest {
-    fn endpoint(&self) -> String {
-        "https://api.openai.com/v1/completions".into()
+    fn endpoint(&self) -> &str {
+        COMPLETION_ENDPOINT
     }
 }
 
@@ -42,7 +60,7 @@ impl CompletionRequest {
         self
     }
 
-    pub fn max_tokens(mut self, max_tokens: i32) -> Self {
+    pub fn max_tokens(mut self, max_tokens: usize) -> Self {
         self.max_tokens = Some(max_tokens);
         self
     }
@@ -90,7 +108,7 @@ impl CompletionRequest {
         self.best_of = Some(best_of);
         self
     }
-    pub fn logit_bias(mut self, logit_bias: String) -> Self {
+    pub fn logit_bias(mut self, logit_bias: HashMap<String, i32>) -> Self {
         self.logit_bias = Some(logit_bias);
         self
     }
@@ -105,6 +123,7 @@ impl CompletionRequest {
 pub struct CompletionResponse {
     pub id: String,
     pub object: String,
+    pub created: usize,
     pub model: String,
     pub choices: Vec<Choice>,
     pub usage: Usage,
@@ -115,14 +134,14 @@ impl OpenAIResponse for CompletionResponse {}
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Choice {
     pub text: String,
-    index: usize,
-    log_probs: Option<i32>,
-    finish_reason: Option<String>,
+    pub index: usize,
+    pub log_probs: Option<i32>,
+    pub finish_reason: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Usage {
-    prompt_tokens: usize,
-    completion_tokens: usize,
-    total_tokens: usize,
+    pub prompt_tokens: usize,
+    pub completion_tokens: usize,
+    pub total_tokens: usize,
 }

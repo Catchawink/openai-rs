@@ -10,12 +10,14 @@ use serde_json::{json, Deserializer, Value};
 
 use crate::{
     completions::{CompletionRequest, CompletionResponse},
+    edits::{EditRequest, EditResponse},
     error::OpenAIError,
+    images::{CreateImageRequest, ImageResponse},
+    models::{CompletionModel, EditModel},
 };
 
-#[async_trait::async_trait]
 pub trait OpenAIRequest {
-    fn endpoint(&self) -> String;
+    fn endpoint(&self) -> &str;
 }
 
 pub trait OpenAIResponse {}
@@ -40,22 +42,38 @@ impl OpenAIClient {
             .bearer_auth(&self.api_key);
 
         let resp = request.send().await?;
-        Ok(resp.json::<serde_json::Value>().await?)
+        resp.json::<serde_json::Value>().await
     }
 
     pub async fn complete(
         &self,
-        model: &str,
+        model: &CompletionModel,
         prompt: &str,
     ) -> Result<CompletionResponse, OpenAIError> {
-        Ok(self
-            .send_request::<CompletionRequest, CompletionResponse>(CompletionRequest::new(
-                model, prompt,
-            ))
-            .await?)
+        //TODO: Add error handling for when the model max tokens < prompt length
+        self.send_request::<CompletionRequest, CompletionResponse>(
+            CompletionRequest::new(model.name, prompt).max_tokens(model.max_tokens - prompt.len()),
+        )
+        .await
     }
 
-    pub async fn edit(&self, model: &str, prompt: &str) {}
+    pub async fn edit(
+        &self,
+        model: &EditModel,
+        input: &str,
+        instruction: &str,
+    ) -> Result<EditResponse, OpenAIError> {
+        dbg!(json!(EditRequest::new(model.name, instruction).input(input)));
+        self.send_request::<EditRequest, EditResponse>(
+            EditRequest::new(model.name, instruction).input(input),
+        )
+        .await
+    }
+
+    pub async fn create_image(&self, prompt: &str) -> Result<ImageResponse, OpenAIError> {
+        self.send_request::<CreateImageRequest, ImageResponse>(CreateImageRequest::new(prompt))
+            .await
+    }
 
     pub async fn send_request<
         Req: OpenAIRequest + Serialize,
@@ -64,10 +82,12 @@ impl OpenAIClient {
         &self,
         request: Req,
     ) -> Result<Res, OpenAIError> {
+        let body = json!(request);
+
         let request_builder = self
             .client
             .post(request.endpoint())
-            .json(&request)
+            .json(&body)
             .bearer_auth(&self.api_key);
 
         let response = request_builder.send().await?.json::<Value>().await?;
@@ -78,10 +98,13 @@ impl OpenAIClient {
             panic!("{}", err_json.to_string());
 
             let not_active = "billing_not_active".to_string();
+            let err_json = json!(response.get("error").unwrap());
+
             match err_json
                 .get("type")
                 .expect("No 'type' sent with error message")
-                .to_string()
+                .as_str()
+                .unwrap()
             {
                 //not_active => return Err(OpenAIError::BillingNotActive),
                 other => return Err(OpenAIError::UnrecognizedError(other)),
